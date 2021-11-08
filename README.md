@@ -22,18 +22,3 @@ Added [ConvMixer]((https://openreview.net/forum?id=TVHS5Y4dNvM)) implementation.
 
 `python train_cifar10.py --net res18 --aug --n_epochs 200` # resnet18+randaug
 
-# Results..
-
-|             | Accuracy |
-|:-----------:|:--------:|
-| ViT patch=2 |    80%    |
-| ViT patch=4 |    80%   |
-| ViT patch=8 |    30%   |
-| ViT small (timm transfer) | 97.5% |
-| ViT base (timm transfer) | 98.5% |
-| [ConvMixerTiny(no pretrain)](https://openreview.net/forum?id=TVHS5Y4dNvM) | 96.3% |
-|   resnet18  |  93%  |
-|   resnet18+randaug  |  95%  |
-
-# Used in..
-* Vision Transformer Pruning [arxiv](https://arxiv.org/abs/2104.08500) [github](https://github.com/Cydia2018/ViT-cifar10-pruning)
