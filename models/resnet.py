@@ -12,6 +12,9 @@ import torch.nn.functional as F
 
 
 class BasicBlock(nn.Module):
+    """
+        子 module: Residual Block ---- ResNet 中一个跨层直连的单元
+        """
     expansion = 1
 
     def __init__(self, in_planes, planes, stride=1):
@@ -22,6 +25,7 @@ class BasicBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
+        # 如果输入和输出的通道不一致，或其步长不为 1，需要将二者转成一致
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
@@ -31,7 +35,7 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
+        out += self.shortcut(x)  # 输出 + 输入
         out = F.relu(out)
         return out
 
@@ -65,19 +69,30 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
+    """
+        实现主 module: ResNet-18
+        ResNet 包含多个 layer, 每个 layer 又包含多个 residual block (上面实现的类)
+        因此, 用 ResidualBlock 实现 Residual 部分，用 _make_layer 函数实现 layer
+        """
     def __init__(self, block, num_blocks, num_classes=10):
         super(ResNet, self).__init__()
         self.in_planes = 64
-
+        # 最开始的操作
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
+        # 四个 layer， 对应 2， 3， 4， 5 层， 每层有两个 residual block
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        # 最后的全连接，分类时使用
         self.linear = nn.Linear(512*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
+        """
+               构建 layer, 每一个 layer 由多个 residual block 组成
+               在 ResNet 中，每一个 layer 中只有两个 residual block
+               """
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
@@ -86,11 +101,14 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        # 最开始的处理
         out = F.relu(self.bn1(self.conv1(x)))
+        # 四层 layer
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
+        # 全连接 输出分类信息
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
